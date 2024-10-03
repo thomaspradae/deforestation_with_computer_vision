@@ -1,0 +1,337 @@
+\documentclass[11pt]{article}
+\usepackage[utf8]{inputenc}
+\usepackage{graphicx}
+\usepackage{float}
+\usepackage{amsmath}
+\usepackage{mathtools}
+\usepackage{amssymb}
+\usepackage{multirow}
+\usepackage{multicol}
+\usepackage{array}
+\usepackage{geometry}
+\usepackage{csquotes}
+\usepackage[usenames]{color}
+\usepackage{cancel}
+\usepackage{subcaption}
+\usepackage{svg}
+\usepackage{graphicx}  
+\usepackage{tabularx}  
+\usepackage{hyperref}
+\usepackage[spanish]{babel}
+
+
+
+\setlength{\parindent}{0pt} 
+
+\usepackage{forest}
+
+\geometry{
+    top=2.5cm,
+    bottom=2.5cm,
+    left=2.5cm,
+    right=2.5cm
+}
+
+\title{Uso de Visión Computacional para \\ identificar deforestación en Colombia}
+\author{Introducción a Machine Learning para Economistas \\ Thomas Prada (1000349474)\\ Universidad Nacional de Colombia \\Septiembre - 2024}
+\date{}
+
+\begin{document}
+
+\maketitle
+
+\begin{section}{Introducción}
+La deforestación se ha convertido en un desafío ambiental urgente tanto a nivel global como en Colombia. En las últimas décadas, este fenómeno ha tenido un impacto devastador sobre los ecosistemas del país. A pesar de los recientes avances en la reducción de las cifras de deforestación, como la disminución del 36\% registrada en 2023 en comparación con 2022, y del 54\% con respecto al 2021, la situación sigue siendo crítica (WWF, 2024). En total, entre 2001 y 2022, Colombia ha perdido alrededor de 3,3 millones de hectáreas de bosques, una superficie equivalente al tamaño del departamento de Nariño (WWF, 2024). Los bosques de Colombia no solo albergan una rica biodiversidad, sino que también desempeñan un papel crucial en la regulación del clima, la conservación del agua y la provisión de recursos esenciales. La deforestación afecta directamente a la biodiversidad al destruir hábitats naturales, contribuye al cambio climático al liberar grandes cantidades de dióxido de carbono, y altera el ciclo del agua, lo que puede derivar en sequías o inundaciones (WWF, 2024). De este modo, la lucha contra la deforestación es esencial para mantener los ecosistemas saludables y evitar consecuencias irreversibles para el medio ambiente y las comunidades que dependen de él, que en últimas, somos todos.
+\\
+\\
+Con los avances en la tecnología satelital, ahora es posible monitorear vastas áreas desde el espacio, lo que proporciona información clave sobre el alcance y la ubicación del daño ambiental. Estas imágenes satelitales ofrecen una fuente de datos invaluable que, con la ayuda de métodos computacionales, puede ser aprovechada para fortalecer los esfuerzos de conservación y supervisión. En este sentido, el objetivo de este trabajo es aplicar modelos de machine learning como Support Vector Machines (SVM), Random Forest (RF) y Redes Neuronales Convolucionales (CNN), para clasificar imágenes satelitales en categorías de "deforestación" y "no deforestación", y medir su rendimiento, así contestando la preguta \textit{¿qué tan efectivamente pueden los modelos de visión computacional entrenados en imágenes satelitales identificar deforestación?}. 
+\end{section}
+\begin{section}{Metodología}
+\begin{subsection}{Obtención de Datos}
+Para crear nuestra base de datos era necesario saber dónde había deforestación en Colombia, para así poder etiquetar estas zonas como \texttt{si\_deforestacion}, y así mismo, etiquetar a las que no entraban en esta categoría como \texttt{no\_deforestación}. Para esto se usaron datos del sitema Global Forest Change (GFC), desarrollado por M.C. Hansen et al. (2013), el cual proporciona mapas de alta resolución sobre los cambios en la cobertura forestal a nivel mundial por año. En nuestro casó se usaron las zonas marcadas con el indicador \texttt{23}, el cuál indica que esa zona fue deforestada en 2023. Se usó este año ya que era de interés acoplar esta información con las imágenes satelitales más recientes, para así asegurar que una zona fuese marcado como \texttt{si\_deforestacion} pero por el paso del tiempo, fuese difícil identificar que había deforestación. Ya que en últimas, el objetivo del modelo es que sea capaz de identififcar la abstracción de \textit{'deforestación'}, en otras palabras, que sea capaz de aprender, mediante la data, cómo se ve una zona deforestada, qué características comparte con otras zonas deforestadas. 
+\\
+\\
+El GFC (2023) usa una grilla para dividir la data mundial de deforestación. En este caso, la única sección de la grilla que nos interesa es la que cubre mayor parte de Colombia (Ver Figura 1)\footnote{Para ser más específico, los bordes de la grilla son, de izquierda a derecha y de arriba hacia abajo: [(10N, 80W), (10N, 70W), (0N, 80W), (0N, 70W)]}. A lo largo del trabajo, en un par de ocasiones, se adjuntarán, además de fotos, mapas interactivos que mejor ilustran la data trabajada. Las imágenes satelitales usadas provienen del programa Landsat 8 de la National Aeronautics and Space Administration (NASA) mediante Earth Engine de Google y su API. También se usará este programa para visualizar la data en formato de un mapa interactivo, el cuál se le recomienda ver, no solo por lo mencionado anteriormente, sino por que también lo considero bien interesante. A continuación se adjunta la visualización del archivo proveniente del GFC que muestra deforestación en Colombia por año entre 2001 y 2023.\textbf{\href{https://ee-thomaspradaes.projects.earthengine.app/view/ml-para-economistas-2}{Hacer click aquí}}. Y también la visualización de solo la deforestación en el año de interés (2023)\footnote{Además de 2023, se añade la deforestación desde 2020 para poder encontrar la deforestación de 2023 más facil, aunque por el efecto transparente, es posible que se alcance a ver solamente los valores de 2023, por lo que se recomienda hacer zoom hasta poderlos ver, ya que desde afuera, es difícil visualizarlos. En caso de no encontrar puntos blancos, use el siguiente ejemplo: En el buscador ponga \textit{Calamar, Guaviare, Colombia} y haga un zoom out hasta que vea las áreas de deforestación en blanco}. \textbf{\href{https://ee-thomaspradaes.projects.earthengine.app/view/loss-2022-2023}{Hacer click aquí}}. 
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=1\textwidth]{tiff_2_file.png}
+    \caption{Visualización sección de de grilla de interés}
+    \label{fig:imagename}
+\end{figure}
+
+Para obtener las imagenes satelitales de ambas categorías, se creó una máscara de cada una (Ver Anexo A-1 y A-2). A cada máscara se le aplicaría una búsqueda aleatoria de puntos, 500 de c/u para ser específicos. Dada las coordenadas de cada punto, se le pediría al API de GEE una foto satelital de dicho punto, tal que tuviese menos de un 20\% de cobertura nubosa, fuese capturada en 2023 y representara un área (patch) de 5000x5000 metros, centrada en las coordenadas del punto. El código del mini algoritmo queda adjunto en la carpeta del código, y a continuación, se muestran dos mapas interactivos que sirven como ejemplos ilustrativos de este método de extracción de datos. En primer lugar se muestra el ejemplo de donde si hay deforestación, y luego el de donde no hay. \textbf{\href{https://ee-thomaspradaes.projects.earthengine.app/view/ejemplodef}{Hacer click aquí}}. Y \textbf{\href{https://ee-thomaspradaes.projects.earthengine.app/view/ejemplonodef}{Hacer click aquí}}. Cada ejemplo muestra las máscaras mencionadas anteriormente, y encima, la muestra de cómo queda generada la imágen satelital que hace parte de la base de datos. A continuación también se adjuntan un par de ejemplos de estas imagenes. 
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=1\textwidth]{yes_deforestation.png}
+    \caption{Ejemplos de \texttt{deforestación} en la base de datos}
+    \label{fig:imagename}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=1\textwidth]{no_deforestation.png}
+    \caption{Ejemplos de \texttt{no\_deforestación} en la base de datos}
+    \label{fig:imagename}
+\end{figure}
+
+\begin{subsection}{Preprocesamiento de datos}
+Cuando trabajamos con imágenes para entrenar modelos de aprendizaje automático, es fundamental aplicar un preprocesamiento adecuado para asegurarnos de que los datos estén en un formato que el modelo pueda entender y procesar eficientemente. En este proyecto, teníamos imágenes en formato TIFF, que es un formato que puede almacenar múltiples bandas de información (canales de color o datos adicionales). Sin embargo, para simplificar y acelerar el proceso de entrenamiento, las convertimos a JPEG, que es un formato de imagen más liviano.\footnote{Esta es la principal razón para hacer la conversión de formato}
+\\
+\\
+Una vez convertidas las imágenes a formato JPEG, fueron normalizadas. Cuando se trabaja con imágenes, cada píxel tiene un valor que puede variar entre 0 y 255 (en el caso de imágenes en escala de grises o RGB). Este rango corresponde a la intensidad de color, donde 0 significa ausencia de luz (negro) y 255 es la máxima intensidad (blanco o color brillante). La normalización consiste en transformar estos valores de píxel al rango de 0 a 1, dividiendo por 255. Esto es esencial porque los modelos de aprendizaje profundo (de los que hablaremos más adelante y que servirán como nuestros benchmarks) funcionan mejor cuando los datos están en rangos pequeños y consistentes. Los valores más altos pueden causar inestabilidad en la optimización debido a que los algoritmos de optimización como Adam se comportan mejor en rangos más manejables (Jaiswal, 2024).
+\\
+\\
+Otro aspecto importante a mencionar es que, para este trabajo, principalmente por curiosidad, se entrenaron modelos tanto con imágenes en color (RGB) como en escala de grises. Las imágenes RGB cuentan con tres canales, rojo, verde y azul, que combinados, generan los colores que vemos. Por otro lado, las imágenes en escala de grises tienen solo un canal, donde la intensidad de cada píxel define el tono de gris. El propósito de probar con ambos formatos es explorar si los modelos logran capturar patrones más ricos con los tres canales de color o si la información en un solo canal (escala de grises) es suficiente para detectar deforestación. Las imágenes RGB pueden contener información más compleja debido a la combinación de colores, mientras que las imágenes en escala de grises simplifican los datos al representar solo variaciones en la intensidad de luz. 
+\\
+\\
+En cuanto al tamaño de las imágenes, redimensionamos todas a 64x64 píxeles para asegurar consistencia y optimizar el proceso de entrenamiento. Mayores resoluciones es computacionamente más caro y lento. El redimensionado a 64x64 es un compromiso entre mantener suficiente detalle para que el modelo aprenda patrones útiles y, al mismo tiempo, reducir la carga computacional. Si tuviéramos más recursos, como mayor capacidad de procesamiento o más memoria, podríamos trabajar con imágenes de mayor tamaño. Sin embargo, esto podría alargar los tiempos de entrenamiento considerablemente sin garantizar necesariamente una mejora proporcional en el rendimiento del modelo. El pixelado que se introduce al reducir el tamaño a 64x64 puede eliminar algunos detalles finos, pero el objetivo es mantener los patrones más generales y relevantes que permitan al modelo distinguir entre áreas con y sin deforestación.\footnote{Esto está sujeto a debate en la sección de discusión}
+\\
+\\
+Una vez preprocesadas las imágenes en términos de tamaño y normalización, aplicamos un proceso conocido como \textit{flattening} o aplanado de las imágenes. Las imágenes, originalmente de tamaño $64 \times 64$ píxeles con tres canales (en el caso de imágenes RGB), son esencialmente matrices tridimensionales. Cada píxel en cada canal de color (rojo, verde, azul) tiene un valor entre 0 y 1. Para facilitar que los algoritmos de aprendizaje automático puedan procesar esta información, transformamos la imagen tridimensional en un vector unidimensional o aplanado, lo cual se conoce como "flattening". De esta manera, una imagen que originalmente tiene la estructura $(64 \times 64 \times 3)$ termina siendo un vector de $12,288$ elementos ($64 \times 64 \times 3$). Este vector contiene la información de todos los píxeles de los tres canales, uno tras otro. Es decir, primero los valores del canal rojo, seguido por los del verde, y finalmente los del azul. A continuación se añade un ejemplo de cómo se vería una imagen después del procesamiento (nótese que así es como se vería la foto, ya que realmente el input al modelo es un vector de 12288 valores, el cuál, si quiere revisarlo, también se adjunta a la carpeta de entrega del trabajo). 
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.5\textwidth]{image_as_vec.png}
+    \caption{Ejemplo de imágen después de preprocesamiento}
+    \label{fig:imagename}
+\end{figure}
+\end{subsection}
+
+\begin{subsection}{Modelos trabajados e hiperparámetros}
+
+\begin{subsubsection}{Random Forest y Support Vector Machines}
+
+Random Forest (RF) y Support Vector Machines (SVM) son dos de los algoritmos supervisados que utilizamos en nuestro trabajo. Ambos modelos requieren que las etiquetas de los datos de entrenamiento estén claramente definidas, es decir, necesitan saber a priori qué imágenes corresponden a deforestación y cuáles no, para poder aprender de ellas. Estos algoritmos funcionan de manera muy distinta entre sí, pero ambos son ampliamente utilizados en tareas de clasificación.
+\\
+\\
+Random Forest es un modelo basado en árboles de decisión. Su idea principal es construir varios árboles de decisión de forma aleatoria y luego combinar sus resultados para obtener una predicción más robusta. Este enfoque de "conjunto" reduce el riesgo de sobreajuste y mejora la capacidad de generalización. 
+Uno de los principales hiperparámetros\footnote{Para SVM y RF se usaron los parámetros predeterminados por las librerías} de RF es el número de árboles en el bosque (\texttt{n\_estimators}), que en nuestro caso se configuró en 100. Otro hiperparámetro clave es la cantidad de características consideradas para dividir en cada nodo (\texttt{max\_features}), que por defecto selecciona la raíz cuadrada del número total de características (2). La profundidad máxima de los árboles (\texttt{max\_depth}) y el número mínimo de muestras necesarias para dividir un nodo (\texttt{min\_samples\_split}) también son relevantes, ya que controlan la complejidad y el comportamiento del modelo.
+\\
+\\
+Por otro lado, SVM se basa en la idea de encontrar un hiperplano óptimo que separe los datos en dos clases de manera que la distancia entre el hiperplano y los puntos de datos más cercanos de cada clase sea máxima. Utilizamos el kernel radial (\texttt{kernel=rbf}) para modelar relaciones no lineales entre las variables de entrada y las etiquetas de salida. Los hiperparámetros más importantes en este caso fueron el parámetro \texttt{C}, que controla el equilibrio entre maximizar el margen y minimizar los errores de clasificación, y \texttt{gamma}, que determina la influencia de cada punto de entrenamiento. El valor de \texttt{gamma} afecta la curva de decisión; un \texttt{gamma} más alto puede llevar a un ajuste excesivo, mientras que uno más bajo puede subestimar la complejidad de los datos. El modelo de SVM se configuró con el hiperparámetro \texttt{C} establecido en 1, lo que controla el equilibrio entre maximizar el margen de separación y minimizar los errores de clasificación. Un valor más alto de \texttt{C} puede reducir el margen, permitiendo al modelo ajustarse mejor a datos complejos pero aumentando el riesgo de sobreajuste. El parámetro \texttt{gamma} se configuró en \texttt{scale}, lo que ajusta automáticamente la influencia de cada punto de datos sobre la curva de decisión, adaptándose a la distribución de los datos. Finalmente, utilizamos el kernel \texttt{rbf} (función de base radial) para capturar relaciones no lineales entre las variables de entrada y las etiquetas de salida, lo cual es útil cuando los datos no pueden separarse linealmente en el espacio original.
+
+\end{subsubsection}
+
+\begin{subsubsection}{CNN y Transfer Learning}
+Además de usar los modelos trabajados en clase, se quiso hacer un benchmark\footnote{Note que esto, al igual que otras decisiones a lo largo del trabajo, se salen de los temas vistos en clase, y por lo tanto, respaldo mucho menos los resultados de estos otros métodos y/o sus interpretaciones y análisis} con otros métodos comunes de la visión computacional. Las Redes Neuronales Convolucionales (CNN) son uno de los modelos más utilizados en problemas de visión por computadora, como la clasificación de imágenes, ya que están diseñadas específicamente para trabajar con datos estructurados en una cuadrícula, como las imágenes. A diferencia de modelos como RF o SVM, las CNN son capaces de detectar características relevantes de las imágenes de manera automática. Este tipo de red se organiza en capas convolucionales, que aplican filtros o \textit{kernels} sobre la imagen, detectando patrones como bordes, texturas y, en etapas más profundas, formas más complejas (Sanderson, 2022). Las capas de pooling se utilizan para reducir la dimensionalidad de los datos, resumiendo regiones de la imagen y reduciendo el número de parámetros sin perder información clave. Por otro lado, las capas densas conectan todas las neuronas de la capa anterior, permitiendo que el modelo tome decisiones finales basadas en las características aprendidas. En nuestro caso, utilizamos una CNN con varias capas convolucionales seguidas de capas de pooling y capas densas. El modelo estaba configurado con \texttt{32} y \texttt{64} filtros en las capas convolucionales y una capa final densa de \texttt{64} neuronas antes de la salida. La activación utilizada fue \texttt{ReLU}, y para la capa de salida, la activación fue \texttt{sigmoid}, apropiada para tareas de clasificación binaria.
+\\
+\\
+Además, experimenté con \textit{Transfer Learning}, que es una técnica que permite aprovechar modelos preentrenados en tareas similares para acelerar el proceso de entrenamiento en un nuevo conjunto de datos (Yosinski et al., 2014). En nuestro caso, utilizamos ResNet50, un modelo preentrenado en la base de datos ImageNet. ResNet50 ha demostrado ser extremadamente eficaz en tareas de clasificación de imágenes debido a su capacidad para representar características complejas a través de su arquitectura profunda con bloques residuales. Sin embargo, para adaptarlo a nuestro problema, congelamos las capas preentrenadas y solo entrenamos las últimas capas densas del modelo para que aprendieran a clasificar entre imágenes de deforestación y no deforestación. La ventaja principal de esta técnica es que permite reutilizar el conocimiento previamente adquirido, reduciendo significativamente el tiempo de entrenamiento y mejorando los resultados, especialmente en escenarios con conjuntos de datos limitados.
+
+\end{subsubsection}
+
+\begin{subsection}{Métricas de evaluación}
+Para contestar la pregunta \textit{¿qué tan efectivamente pueden los modelos de visión computacional entrenados en imágenes satelitales identificar deforestación?} es necesario emplear métricas de evaluación. En últimas, siento que la métrica que más enmarca mi objetivo es posiblemente, la más straightforward, o directa, esta siendo el \textit{accuracy}:
+
+\begin{itemize}
+    \item \textbf{Accuracy (Exactitud)}: La exactitud mide la proporción de predicciones correctas entre todas las predicciones realizadas. Se define como:
+    \[
+    \text{Accuracy} = \frac{\text{Predicciones Correctas}}{\text{Total de Predicciones}}
+    \]
+
+\end{itemize}
+Esta métrica permite evaluar la efectividad de nuestro modelo al identificar la cantidad de predicciones correctas que tuvo respecto al total de predicciones que hizo. Además de estas métricas, en el anexo (Ver anexo B-1) se adjuntan las otras métricas que también fueron trabajadas en el taller 2, y que son arrojadas por las librerías. 
+\end{subsection}
+
+\end{subsection}
+
+\end{subsection}
+\end{section}
+\begin{section}{Resultados}
+Los resultados de los modelos son los siguientes:
+\begin{table}[H]
+\centering
+\caption{Comparación de Exactitud entre Modelos SVM, Random Forest, Transfer Learning y CNN}
+\begin{tabular}{|l|c|}
+\hline
+\textbf{Modelo}            & \textbf{Exactitud (Accuracy)} \\
+\hline
+\textbf{Random Forest (Color)} & 0.6796                         \\
+\textbf{Transfer Learning (ResNet50)} & 0.6685                         \\
+\textbf{Random Forest (Gris)} & 0.6464                         \\
+\textbf{SVM (Color)}        & 0.6022                         \\
+\textbf{SVM (Gris)}         & 0.6022                         \\
+\textbf{CNN}                & 0.5967                         \\
+\hline
+\end{tabular}
+\end{table}
+En esta tabla se presenta una comparación de la exactitud (\textit{accuracy}) obtenida por los distintos modelos evaluados. El modelo \textbf{Random Forest en color} logró la mayor exactitud con un \textbf{67.96\%}, seguido del modelo de \textbf{Transfer Learning (ResNet50)} con una exactitud de \textbf{66.85\%}. En tercer lugar, se encuentra el modelo \textbf{Random Forest en escala de grises} con un \textbf{64.64\%}. Los modelos \textbf{SVM}, tanto en color como en escala de grises, obtuvieron una exactitud del \textbf{60.22\%}, mientras que el modelo \textbf{CNN} fue el que mostró el menor rendimiento, alcanzando una exactitud de \textbf{59.67\%}. En conclusión, estos resultados muestran una superioridad del modelo RF (en particular la versión entrenada en imágenes de color) por encima de los otros modelos, sin necesariamente mostrar brechas altas en efectividad.
+\\
+\\
+A continuación, se presentan los resultados de los modelos vistos en clase a mayor detalle (es importante recordar que estamos trabajando con dos categorías: la categoría 0 corresponde a \texttt{no\_deforestacion}, mientras que la categoría 1 indica \texttt{deforestación}):
+\\
+\\
+\begin{table}[H]
+\centering
+\caption{Resultados de Random Forest en Color}
+\begin{tabular}{|l|c|c|c|c|}
+\hline
+\textbf{Clase} & \textbf{Precisión} & \textbf{Recall} & \textbf{F1-Score} & \textbf{Soporte} \\
+\hline
+Clase 0 & 0.67 & 0.84 & 0.75 & 103 \\
+Clase 1 & 0.69 & 0.46 & 0.55 & 78 \\
+\hline
+\textbf{Exactitud (Accuracy)} & \multicolumn{4}{c|}{0.6796} \\
+\textbf{Media Macro} & 0.68 & 0.65 & 0.65 & 181 \\
+\textbf{Media Ponderada} & 0.68 & 0.68 & 0.67 & 181 \\
+\hline
+\end{tabular}
+\end{table}
+\begin{table}[htbp]
+\centering
+\caption{Resultados de SVM en Color}
+\begin{tabular}{|l|c|c|c|c|}
+\hline
+\textbf{Clase} & \textbf{Precisión} & \textbf{Recall} & \textbf{F1-Score} & \textbf{Soporte} \\
+\hline
+Clase 0 & 0.60 & 0.91 & 0.72 & 103 \\
+Clase 1 & 0.62 & 0.19 & 0.29 & 78 \\
+\hline
+\textbf{Exactitud (Accuracy)} & \multicolumn{4}{c|}{0.6022} \\
+\textbf{Media Macro} & 0.61 & 0.55 & 0.51 & 181 \\
+\textbf{Media Ponderada} & 0.61 & 0.60 & 0.54 & 181 \\
+\hline
+\end{tabular}
+\end{table}
+\begin{table}[htbp]
+\centering
+\caption{Resultados de SVM en Escala de Grises}
+\begin{tabular}{|l|c|c|c|c|}
+\hline
+\textbf{Clase} & \textbf{Precisión} & \textbf{Recall} & \textbf{F1-Score} & \textbf{Soporte} \\
+\hline
+Clase 0 & 0.60 & 0.90 & 0.72 & 103 \\
+Clase 1 & 0.62 & 0.21 & 0.31 & 78 \\
+\hline
+\textbf{Exactitud (Accuracy)} & \multicolumn{4}{c|}{0.6022} \\
+\textbf{Media Macro} & 0.61 & 0.55 & 0.51 & 181 \\
+\textbf{Media Ponderada} & 0.61 & 0.60 & 0.54 & 181 \\
+\hline
+\end{tabular}
+\end{table}
+\begin{table}[htbp]
+\centering
+\caption{Resultados de Random Forest en Escala de Grises}
+\begin{tabular}{|l|c|c|c|c|}
+\hline
+\textbf{Clase} & \textbf{Precisión} & \textbf{Recall} & \textbf{F1-Score} & \textbf{Soporte} \\
+\hline
+Clase 0 & 0.65 & 0.83 & 0.73 & 103 \\
+Clase 1 & 0.65 & 0.40 & 0.49 & 78 \\
+\hline
+\textbf{Exactitud (Accuracy)} & \multicolumn{4}{c|}{0.6464} \\
+\textbf{Media Macro} & 0.65 & 0.62 & 0.61 & 181 \\
+\textbf{Media Ponderada} & 0.65 & 0.65 & 0.63 & 181 \\
+\hline
+\end{tabular}
+\end{table}
+
+En el caso del modelo Random Forest en color, podemos observar que el modelo tiene una precisión de 0.67 para la clase 0 (no deforestación) y una precisión de 0.69 para la clase 1 (deforestación). La métrica de precisión nos indica qué proporción de los ejemplos clasificados como positivos (deforestación) por el modelo realmente son positivos. El valor más alto para la clase 1 (0.69) sugiere que el modelo es relativamente bueno detectando zonas de deforestación. En cuanto al \textit{recall}, que mide la capacidad del modelo para identificar correctamente los ejemplos positivos, el modelo tiene un valor de 0.84 para la clase 0 y 0.46 para la clase 1. Esto significa que el modelo es mucho más efectivo detectando áreas sin deforestación (clase 0) que áreas con deforestación. Finalmente, el \textit{f1-score}, que es la media armónica entre la precisión y el \textit{recall}, muestra un mejor desempeño en la clase 0 (0.75) en comparación con la clase 1 (0.55). La exactitud total (\textit{accuracy}) del modelo es de 0.6796, lo que indica que casi un 68\% de las predicciones fueron correctas. El modelo SVM en color muestra una precisión de 0.60 para la clase 0 y de 0.62 para la clase 1. Esto indica que el modelo tiene una ligera ventaja en la detección de zonas de deforestación (clase 1). Sin embargo, el \textit{recall} es considerablemente más bajo para la clase 1 (0.19), lo que indica que el modelo está fallando en identificar la mayoría de las áreas con deforestación . En la clase 0, el \textit{recall} es mucho más alto (0.91), lo que sugiere que el modelo es muy eficiente en detectar áreas sin deforestación, pero es menos efectivo en capturar correctamente las áreas que sí están deforestadas (al igual que el modelo RF). El \textit{f1-score} es coherente con estas observaciones, siendo mucho más alto para la clase 0 (0.72) que para la clase 1 (0.29). La exactitud total del modelo es de 0.6022, lo que indica que aproximadamente un 60\% de las predicciones fueron correctas.
+\\
+\\
+En el caso del modelo SVM en escala de grises, se observa un patrón similar al del modelo en color. La precisión para la clase 0 es de 0.60 y para la clase 1 es de 0.62, lo que sugiere que la capacidad del modelo para distinguir entre zonas con y sin deforestación no mejora significativamente al utilizar imágenes en escala de grises. El \textit{recall} para la clase 0 es de 0.90, mientras que para la clase 1 es de 0.21. Esto nuevamente subraya la dificultad del modelo para identificar correctamente las áreas de deforestación. El \textit{f1-score} es de 0.72 para la clase 0 y de 0.31 para la clase 1. La exactitud total del modelo es de 0.6022, muy similar al modelo en color. El modelo Random Forest en escala de grises presenta resultados bastante consistentes con su versión en color. La precisión es de 0.65 tanto para la clase 0 como para la clase 1, lo que sugiere un buen equilibrio en la clasificación de ambas categorías. En términos de \textit{recall}, el modelo muestra un desempeño significativamente mejor para la clase 0 (0.83) en comparación con la clase 1 (0.40), lo que indica que el modelo es mucho más eficiente en identificar áreas sin deforestación que zonas con deforestación. El \textit{f1-score} sigue esta tendencia, con un valor de 0.73 para la clase 0 y de 0.49 para la clase 1. La exactitud total del modelo es de 0.6464, lo que implica que un 64.64\% de las predicciones fueron correctas, mejorando ligeramente con respecto a los modelos SVM.
+\\
+\\
+En resumen, el análisis detallado de las tablas nos permite observar que, si bien el modelo Random Forest en color es el más efectivo en términos de exactitud general, todos los modelos tienden a ser más efectivos en la detección de áreas sin deforestación (clase 0) en comparación con áreas de deforestación (clase 1). Esto se refleja claramente en los valores de \textit{recall}, donde los modelos consistentemente tienen dificultades para identificar correctamente las zonas deforestadas. Las métricas de \textit{f1-score} también respaldan esta observación, mostrando un mejor equilibrio para la clase 0 en comparación con la clase 1.
+
+\begin{subsubsection}{Modificaciones de hiperparámetros}
+    Además de usar los hiperparámetros preestablecidos de los modelos, también se intentaron ajustar\footnote{Aunque, como será mencionado anteriormente, no fue algo en que me enfoqué mucho, y se añade a la sección de futuras recomendaciones y ajustes}. Estos ajustes incluyeron la búsqueda de los valores óptimos para los hiperparámetros clave a través de una búsqueda en cuadrícula (\textit{Grid Search}), la cual permitió probar diferentes combinaciones de valores para cada hiperparámetro. En el caso del modelo SVM, se ajustaron parámetros como \texttt{C}, \texttt{gamma} y el tipo de \texttt{kernel}. Se probaron valores de \texttt{C} entre 0.1 y 10, lo cual controla el equilibrio entre la maximización del margen y la minimización de errores de clasificación. Asimismo, se exploraron diferentes configuraciones para \texttt{gamma}, que determina la influencia de cada punto de datos en el modelo. Para este trabajo, se seleccionó el kernel radial (\texttt{rbf}), ya que es el más adecuado para capturar relaciones no lineales en los datos. Aunque se realizaron ajustes en los hiperparámetros, los resultados del modelo SVM no mostraron mejoras drásticas en comparación con los parámetros predeterminados, obteniendo una precisión final del 60.22\%.
+    \\
+    \\
+    Por otro lado, para el modelo Random Forest, se ajustaron parámetros como el número de estimadores (\texttt{n\_estimators}), la profundidad máxima de los árboles (\texttt{max\_depth}) y el criterio de división (\texttt{min\_samples\_split}). Se probó un número de estimadores entre 50 y 100, y se exploraron diferentes profundidades para los árboles, permitiendo así que algunos árboles fueran más complejos mientras que otros se mantuvieran limitados en profundidad para evitar sobreajuste. Los mejores resultados para el modelo Random Forest se obtuvieron con 100 estimadores y una profundidad máxima de 10, lo que llevó a una precisión del 66.30\%. Cabe mencionar que, debido a la naturaleza computacionalmente intensiva de la búsqueda de hiperparámetros, especialmente para el modelo SVM, el proceso tomó un tiempo considerablemente largo, en particular al utilizar una búsqueda en cuadrícula con 1800 combinaciones posibles. Aunque este enfoque exhaustivo proporcionó un ajuste más preciso, su ejecución resultó ser lenta y a veces excesiva para la capacidad computacional disponible en este trabajo. En futuros desarrollos, sería ideal implementar técnicas de búsqueda de hiperparámetros más eficientes, como \textit{Random Search} o incluso métodos bayesianos, que permiten explorar el espacio de hiperparámetros de manera más eficiente, reduciendo el tiempo de cómputo sin sacrificar la calidad del ajuste, o honestamente, usar gridsearch pero con paciencia y un método que permita que el programa corra por largas cantidades de tiempo. Los intentos de tunear los hiperparámetros pueden verse en el código adjunto.
+\end{subsubsection}
+
+\end{section}
+\begin{section}{Conclusiones y discusión}
+Mediante el trabajo se intenta responder a la pregunta \textit{¿qué tan efectivamente pueden los modelos de visión computacional entrenados en imágenes satelitales identificar deforestación?}. Los resultados obtenidos nos permiten afirmar que sí hemos logrado responder esta pregunta, aunque con ciertas limitaciones y matices. Los modelos evaluados, en particular \textit{Random Forest} y \textit{Transfer Learning} (ResNet50), demostraron ser efectivos en la identificación de deforestación por encima de los otros (sin que tampoco existiese una brecha notoria o exesiva, ya que todos los modelos estaban en promedio entre 60 y 70\%), alcanzando niveles de exactitud de hasta 67.96\% y 66.85\%, respectivamente. Estos resultados muestran que los modelos de visión computacional pueden captar patrones relevantes en las imágenes satelitales.
+\\
+\\
+No obstante, es importante destacar que, aunque estos modelos lograron identificar correctamente las áreas de deforestación en una buena proporción, presentaron dificultades en la clasificación de la clase 1 (deforestación) en comparación con la clase 0 (no deforestación). Esto se reflejó en métricas como el \textit{recall}, donde la capacidad de los modelos para detectar correctamente las zonas deforestadas fue considerablemente menor que para las zonas sin deforestación. Esta tendencia fue evidente en todos los modelos probados, y sugiere que, aunque las técnicas empleadas pueden ofrecer resultados prometedores, aún hay espacio para mejorar su desempeño, especialmente en la identificación de áreas con deforestación. En adición, la capacidad de los modelos de predecir la deforestación o falta de esta, por encima de un 50\% nos indica que su rendimiento es mejor que una selección/categorización aleatoria (dado que la cantidad de labels 1 y 0 es la misma), por lo que también considero nos permite contestar que la capacidad, a pesar de las limitaciones, nos muestra que la efectividad está por encima de una categorización aleatoria (50\%). 
+\\
+\\
+En resumen, podemos concluir que los modelos de visión computacional pueden ser herramientas útiles y efectivas para la clasificación de imágenes satelitales de deforestación, pero que requiere (posiblemente) unas mejoras, que se discutirán a continuación. 
+\end{subsection}
+\begin{subsection}{Mejoras y desarollo futuro}
+A pesar de que los modelos utilizados en este trabajo han demostrado ser útiles y relativamente efectivos para la clasificación de imágenes satelitales en el contexto de la deforestación, se requieren mejoras sustanciales en varios aspectos para incrementar la precisión y robustez de los resultados. En primer lugar, el tamaño del conjunto de datos utilizado es relativamente pequeño, con solo 500 imágenes para cada clase (\texttt{deforestación} y \texttt{no\_deforestación}). Este número limitado de imágenes puede restringir la capacidad del modelo para generalizar adecuadamente a nuevos datos. En el desarollo futuro sería beneficioso ampliar considerablemente el conjunto de datos, tanto en número de imágenes como en su diversidad, para entrenar los modelos de manera más robusta y reducir el riesgo de sobreajuste.
+\\
+\\
+Además, la reducción de las imágenes a una resolución de $64 \times 64$ píxeles, aunque necesaria para simplificar el procesamiento computacional, implica una pérdida considerable de detalles visuales. Dado que la deforestación puede depender de patrones sutiles en la vegetación y el terreno, es probable que el redimensionado haya afectado negativamente la capacidad de los modelos para capturar esas características importantes. Se podría explorar el uso de imágenes con mayor resolución, en combinación con técnicas de procesamiento más eficientes, para conservar más detalles sin incrementar excesivamente la carga computacional. Otro punto crítico es que solo se utilizaron datos de 2023 para identificar las áreas deforestadas. Esto introduce un sesgo significativo, ya que algunas imágenes podrían haber mostrado áreas deforestadas en 2022 o años anteriores, pero que no fueron etiquetadas como \texttt{deforestación} debido a que el indicador \texttt{23} de Global Forest Change usado solo marca los cambios ocurridos en 2023. Esta limitación temporal sugiere que algunas áreas clasificadas como \texttt{no\_deforestación} en realidad podrían haber sufrido deforestación en años anteriores, lo que afecta la calidad del etiquetado.
+\\
+\\
+Además, a pesar de que se aplicó un filtro para excluir imágenes con más del 20\% de cobertura nubosa, algunas imágenes aún presentaban problemas. En algunos casos, las imágenes estaban parcialmente cubiertas por nubes o mostraban interferencias de colores inusuales o filtros, e incluso algunas aparecían completamente negras, lo que redujo la calidad del conjunto de datos. La mejora en la selección de imágenes satelitales sin estas interferencias será crucial para obtener datos más limpios y útiles. Finalmente, se sugiere explorar el uso de modelos más complejos, como redes neuronales profundas con arquitecturas más avanzadas o el empleo de modelos preentrenados más robustos. Con conjuntos de datos más grandes y variados, junto con el uso de técnicas de ajuste fino (\textit{fine-tuning}) y mejores hiperparámetros, se podría mejorar significativamente la capacidad de estos modelos para identificar con precisión las áreas de deforestación.
+\end{subsection}
+\end{section}
+
+\begin{section}{Anexos}
+\begin{subsection}{A - Obtención de datos}
+Las máscaras pueden verse con más detalle en los mapas interactivos adjuntos en la sección 2.1 \textit{Obtención de datos}, sin embargo también quise adjuntar la imágen de la máscara tal como es usada en código, para mostrar que es la misma. En el caso de \texttt{si\_deforestacion} se hace zoom a una zona dónde se puede ver mejor la máscara, ya que si usamos el mismo nivel de zoom que \texttt{no\_deforestación} no se alcanza a ver. 
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=1\textwidth]{mask, no deforestation.png}
+    \caption{Anexo A1 - Máscara de \texttt{no\_deforestacion}}
+    \label{fig:imagename}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=1\textwidth]{mask, si deforestation.png}
+    \caption{Anexo A2 - Máscara de \texttt{si\_deforestacion}}
+    \label{fig:imagename}
+\end{figure}
+    
+\end{subsection}
+
+\begin{subsection}{B - Métricas de evaluación}
+\begin{subsubsection}{B-1 Métricas de evaluación adicionales}
+    \begin{itemize}
+
+    \item \textbf{Precision (Precisión)}: La precisión mide la proporción de predicciones correctas entre todas las predicciones positivas realizadas por el modelo. Se calcula como:
+    \[
+    \text{Precision} = \frac{\text{Verdaderos Positivos (VP)}}{\text{Verdaderos Positivos (VP)} + \text{Falsos Positivos (FP)}}
+    \]
+    Esta métrica es especialmente útil cuando nos importa cuántos de los ejemplos clasificados como positivos realmente lo son.
+
+    \item \textbf{Recall (Sensibilidada)}: La sensibilidad, también conocida como \textit{recall}, mide la capacidad del modelo para identificar correctamente los ejemplos positivos. Se define como:
+    \[
+    \text{Recall} = \frac{\text{Verdaderos Positivos (VP)}}{\text{Verdaderos Positivos (VP)} + \text{Falsos Negativos (FN)}}
+    \]
+    Esta métrica es útil cuando el objetivo es maximizar la detección de ejemplos positivos.
+
+    \item \textbf{Puntaje F1 (F1-Score)}: El puntaje F1 es la media armónica entre la precisión y la sensibilidad. Proporciona un balance entre ambas métricas y se calcula como:
+    \[
+    \text{F1-Score} = 2 \times \frac{\text{Precisión} \times \text{Sensibilidad}}{\text{Precisión} + \text{Sensibilidad}}
+    \]
+    El puntaje F1 es útil cuando se desea un balance entre precisión y sensibilidad.
+    
+    \item \textbf{Apoyo (Support)}: El apoyo representa el número total de ejemplos de cada clase en el conjunto de datos. No es una métrica de rendimiento, pero es útil para interpretar la proporción de ejemplos de cada clase. Esto tendrá más relevancia a continuación cuando se muestre el rendimiento por cada dígito
+\end{itemize}
+
+\end{subsubsection}
+
+    
+\end{subsection}
+
+    
+\end{section}
+
+\begin{section}{Referencias}
+
+\begin{itemize}
+
+\item Hansen, M. C., Potapov, P. V., Moore, R., Hancher, M., Turubanova, S. A., Tyukavina, A., ... & Townshend, J. R. G. (2013). High-Resolution Global Maps of 21st-Century Forest Cover Change. *Science, 342*(6160), 850-853. https://doi.org/10.1126/science.1244693
+
+\item Jaiswal, S. (2024). Normalization in machine learning: Techniques and importance. DataCamp. https://www.datacamp.com/tutorial/normalization-in-machine-learning
+
+\item Sanderson, G. (2022). Convolutions. 3Blue1Brown. https://www.3blue1brown.com/lessons/convolutions
+
+\item WWF. (2024). Causas y consecuencias de la deforestación en Colombia. World Wildlife Fund Colombia. https://www.wwf.org.co/?386550/deforestacion-colombia-causas-consecuencias
+
+\end{itemize}
+
+\end{section}
+
+\end{document}
+
